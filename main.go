@@ -1,10 +1,21 @@
 package main
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+	"os"
+)
+
+var port = os.Getenv("PORT")
 
 func main() {
+	if port == "" {
+		port = "3100"
+	}
+
 	s := NewServer()
 	s.Routes()
 
-	http.ListenAndServe(":3100", s)
+	log.Printf("Starting server on port: %s\n", port)
+	log.Fatal(http.ListenAndServe(":"+port, s))
 }
