@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net"
 	"net/http"
 	"text/template"
 )
@@ -16,14 +17,15 @@ type Peer struct {
 
 // Server holds all configuration of our server, including the router
 type Server struct {
-	PublicIP   string
-	Port       string
-	Iface      string
-	VirtualIP  string
-	CIDR       string
-	PublicKey  string
-	ConfigPath string
-	Peers      []Peer
+	PublicIP         string
+	Port             string
+	VirtualIP        string
+	CIDR             string
+	PublicKey        string
+	DNS              string
+	WgConfigPath     string
+	ServerConfigPath string
+	Peers            []Peer
 
 	mux *http.ServeMux
 }
@@ -32,6 +34,10 @@ type Server struct {
 func NewServer() *Server {
 	// parse our configuration file
 	return &Server{mux: http.NewServeMux()}
+}
+
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(w, r)
 }
 
 func (s *Server) renderTemplatePage(tmplFname string, data interface{}) http.Handler {
@@ -48,6 +54,13 @@ func (s *Server) renderTemplatePage(tmplFname string, data interface{}) http.Han
 	})
 }
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
+func (s *Server) GetPublicIPAddr() (string, error) {
+	// ip -4 a show wlp2s0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+	conn, err := net.Dial("udp", "1.1.1.1:80")
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+	addr := conn.LocalAddr().(*net.UDPAddr)
+	return addr.IP.String(), nil
 }
