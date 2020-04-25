@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -14,10 +13,9 @@ func main() {
 		port = "3100"
 	}
 
-	s := NewServer()
+	s := NewWgServer()
 	s.Routes()
-	ip, _ := s.GetPublicIPAddr()
-	fmt.Println(ip)
+	s.CheckServerConfig()
 
 	log.Printf("Starting server on port: %s\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, s))

@@ -16,7 +16,7 @@ type Peer struct {
 }
 
 // Server holds all configuration of our server, including the router
-type Server struct {
+type WgServer struct {
 	PublicIP         string
 	Port             string
 	VirtualIP        string
@@ -31,16 +31,16 @@ type Server struct {
 }
 
 // NewServer instantiates the server
-func NewServer() *Server {
+func NewWgServer() *WgServer {
 	// parse our configuration file
-	return &Server{mux: http.NewServeMux()}
+	return &WgServer{mux: http.NewServeMux()}
 }
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *WgServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
 
-func (s *Server) renderTemplatePage(tmplFname string, data interface{}) http.Handler {
+func (s *WgServer) renderTemplatePage(tmplFname string, data interface{}) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t, err := template.ParseFiles("templates/" + tmplFname)
 		if err != nil {
@@ -54,7 +54,7 @@ func (s *Server) renderTemplatePage(tmplFname string, data interface{}) http.Han
 	})
 }
 
-func (s *Server) GetPublicIPAddr() (string, error) {
+func (s *WgServer) getPublicIPAddr() (string, error) {
 	// ip -4 a show wlp2s0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
 	conn, err := net.Dial("udp", "1.1.1.1:80")
 	if err != nil {

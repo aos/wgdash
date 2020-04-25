@@ -9,7 +9,7 @@ import (
 
 func TestHandleIndex(t *testing.T) {
 	t.Run("returns the template homepage", func(t *testing.T) {
-		s := NewServer()
+		s := NewWgServer()
 		s.Routes()
 
 		request, _ := http.NewRequest(http.MethodGet, "/", nil)
