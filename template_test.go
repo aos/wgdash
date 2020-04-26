@@ -12,16 +12,22 @@ func TestConfigTemplates(t *testing.T) {
 		tmpl := template.Must(template.ParseFiles("templates/server.conf.tmpl"))
 		var b bytes.Buffer
 		wantOutput := `[Interface]
-Address = 10.22.65.87
+Address = 10.22.65.87/16
 ListenPort = 4566
 PrivateKey = topsecret==
 PostUp = iptables -A FORWARD -i %i -o %i -j ACCEPT
 PostDown = iptables -D FORWARD -i %i -i %i -j ACCEPT
 SaveConfig = false
 
+# Louie
 [Peer]
 PublicKey = abcdefg0==
 AllowedIPs = 10.11.32.87/32
+
+# Phin
+[Peer]
+PublicKey = xyz==
+AllowedIPs = 10.11.32.88/32
 `
 
 		serv := makeTestServerConfig()
@@ -49,6 +55,13 @@ func makeTestServerConfig() *WgServer {
 			PublicKey: "abcdefg0==",
 			QRcode:    "andefdf==",
 			VirtualIP: "10.11.32.87",
+		},
+		{
+			Active:    true,
+			Name:      "Phin",
+			PublicKey: "xyz==",
+			QRcode:    "hello==",
+			VirtualIP: "10.11.32.88",
 		},
 	}
 	return &WgServer{

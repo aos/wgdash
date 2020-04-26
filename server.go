@@ -15,7 +15,7 @@ type Peer struct {
 	VirtualIP string
 }
 
-// Server holds all configuration of our server, including the router
+// WgServer holds all configuration of our server, including the router
 type WgServer struct {
 	PublicIP         string
 	Port             string
@@ -30,7 +30,7 @@ type WgServer struct {
 	mux *http.ServeMux
 }
 
-// NewServer instantiates the server
+// NewWgServer instantiates the server
 func NewWgServer() *WgServer {
 	// parse our configuration file
 	return &WgServer{mux: http.NewServeMux()}
@@ -55,7 +55,9 @@ func (s *WgServer) renderTemplatePage(tmplFname string, data interface{}) http.H
 }
 
 func (s *WgServer) getPublicIPAddr() (string, error) {
-	// ip -4 a show wlp2s0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+	// Alternative: ip -4 a show wlp2s0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+	// Note: this does not make an actual connection and can be used
+	// offline
 	conn, err := net.Dial("udp", "1.1.1.1:80")
 	if err != nil {
 		return "", err
