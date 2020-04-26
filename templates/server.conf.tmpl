@@ -5,12 +5,10 @@ PrivateKey = {{.PrivateKey}}
 PostUp = iptables -A FORWARD -i %i -o %i -j ACCEPT
 PostDown = iptables -D FORWARD -i %i -i %i -j ACCEPT
 SaveConfig = false
-{{- if gt (len .Peers) 0 -}}
-{{range .Peers}}
+{{- range .Clients}}
 
 # {{.Name}}
-[Peer]
+[Client]
 PublicKey = {{.PublicKey}}
 AllowedIPs = {{.VirtualIP}}/32
-{{- end -}}
-{{end}}
+{{- end}}

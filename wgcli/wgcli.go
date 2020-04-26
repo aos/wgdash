@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// GenerateKeyPair calls wg to create a private and public key pair
+// GenerateKeyPair uses wg cli to create a private and public key pair
 func GenerateKeyPair() map[string]string {
 	cmd := exec.Command("wg", "genkey")
 	priv, err := cmd.Output()

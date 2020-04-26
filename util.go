@@ -5,8 +5,10 @@ import (
 	"os"
 )
 
+// CheckServerConfig looks for the server config and if it can't find it,
+// will make a new one.
 func (s *WgServer) CheckServerConfig() {
-	_, err := os.Open(s.ServerConfigPath)
+	_, err := os.Open("config.json")
 	if err != nil {
 		// File not found -- let's create it
 		if os.IsNotExist(err) {

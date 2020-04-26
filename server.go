@@ -6,8 +6,8 @@ import (
 	"text/template"
 )
 
-// Peer is any client device added and connects to the wg server
-type Peer struct {
+// Client is any client device added and connects to the wg server
+type Client struct {
 	Active    bool
 	Name      string
 	PublicKey string
@@ -25,7 +25,7 @@ type WgServer struct {
 	DNS              string
 	WgConfigPath     string
 	ServerConfigPath string
-	Peers            []Peer
+	Clients          []Client
 
 	mux *http.ServeMux
 }
@@ -54,15 +54,16 @@ func (s *WgServer) renderTemplatePage(tmplFname string, data interface{}) http.H
 	})
 }
 
-func (s *WgServer) getPublicIPAddr() (string, error) {
+func (s *WgServer) addPublicIPAddr() error {
 	// Alternative: ip -4 a show wlp2s0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
 	// Note: this does not make an actual connection and can be used
 	// offline
 	conn, err := net.Dial("udp", "1.1.1.1:80")
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer conn.Close()
 	addr := conn.LocalAddr().(*net.UDPAddr)
-	return addr.IP.String(), nil
+	s.PublicIP = addr.IP.String()
+	return nil
 }
