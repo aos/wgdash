@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net"
 	"net/http"
 	"text/template"
 )
@@ -17,22 +16,20 @@ type Client struct {
 
 // WgServer holds all configuration of our server, including the router
 type WgServer struct {
-	PublicIP         string
-	Port             string
-	VirtualIP        string
-	CIDR             string
-	PublicKey        string
-	DNS              string
-	WgConfigPath     string
-	ServerConfigPath string
-	Clients          []Client
+	PublicIP     string
+	VirtualIP    string
+	CIDR         string
+	DNS          string
+	PublicKey    string
+	WgConfigPath string
+	Clients      []Client
 
 	mux *http.ServeMux
 }
 
 // NewWgServer instantiates the server
 func NewWgServer() *WgServer {
-	// parse our configuration file
+	// parse our config file
 	return &WgServer{mux: http.NewServeMux()}
 }
 
@@ -52,18 +49,4 @@ func (s *WgServer) renderTemplatePage(tmplFname string, data interface{}) http.H
 			panic(err)
 		}
 	})
-}
-
-func (s *WgServer) addPublicIPAddr() error {
-	// Alternative: ip -4 a show wlp2s0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
-	// Note: this does not make an actual connection and can be used
-	// offline
-	conn, err := net.Dial("udp", "1.1.1.1:80")
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	addr := conn.LocalAddr().(*net.UDPAddr)
-	s.PublicIP = addr.IP.String()
-	return nil
 }
