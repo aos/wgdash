@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -10,11 +10,13 @@ import (
 	"github.com/aos/wgdash/wgcli"
 )
 
+var fileName = "server_config.json"
+
 // LoadWriteServerConfig looks for the server config and
 // if it can't find it, will make a new one.
 func LoadWriteServerConfig() {
 	var wgServer *WgServer
-	_, err := os.Open("server_config.json")
+	_, err := os.Open(fileName)
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Println("Server config does not exist. Creating...")
@@ -22,8 +24,13 @@ func LoadWriteServerConfig() {
 			if err != nil {
 				log.Fatalf("unable to create server config: %s\nShutting down.", err)
 			}
+			pubIP, err := getPublicIPAddr()
+			if err != nil {
+				log.Fatalf("LoadWriteServerConfig: %s", err)
+			}
 			// 2. create default server config struct
 			wgServer = &WgServer{
+				PublicIP:     pubIP,
 				VirtualIP:    "10.22.0.1",
 				CIDR:         "16",
 				DNS:          "1.1.1.1",
@@ -33,17 +40,20 @@ func LoadWriteServerConfig() {
 			}
 			// 3. save json config -- this also acts as the "db",
 			// storing our private key
-			b, err := json.Marshal(struct {
+			f, err := json.MarshalIndent(struct {
 				WgServer
 				PrivateKey string
 			}{
 				WgServer:   *wgServer,
 				PrivateKey: keys["privateKey"],
-			})
+			}, "", "    ")
 			if err != nil {
 				log.Fatalf("unable to create server config: %s\nShutting down.", err)
 			}
-			fmt.Println(string(b))
+			err = ioutil.WriteFile(fileName, f, 0600)
+			if err != nil {
+				log.Fatal("Unable to write server config JSON file")
+			}
 		}
 	}
 	//tmpl := template.Must(template.ParseFiles("templates/server.conf.tmpl"))
