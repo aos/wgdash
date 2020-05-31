@@ -22,7 +22,7 @@ Address = 10.22.65.87/16
 ListenPort = 4566
 PrivateKey = topsecret==
 PostUp = iptables -A FORWARD -i %i -o %i -j ACCEPT
-PostDown = iptables -D FORWARD -i %i -i %i -j ACCEPT
+PostDown = iptables -D FORWARD -i %i -o %i -j ACCEPT
 SaveConfig = false
 `
 	clientOutput := `
@@ -48,13 +48,7 @@ AllowedIPs = 10.11.32.87/32
 			for i := 0; i < tt.numClients; i++ {
 				serv.Clients = append(serv.Clients, client)
 			}
-			err := tmpl.Execute(&b, struct {
-				WgServer
-				PrivateKey string
-			}{
-				WgServer:   *serv,
-				PrivateKey: "topsecret==",
-			})
+			err := tmpl.Execute(&b, *serv)
 			if err != nil {
 				t.Fatalf("error opening template: %s", err)
 			}
@@ -67,14 +61,14 @@ AllowedIPs = 10.11.32.87/32
 
 func makeTestServerConfig() *WgServer {
 	return &WgServer{
-		PublicIP:         "188.272.271.04",
-		Port:             "4566",
-		VirtualIP:        "10.22.65.87",
-		CIDR:             "16",
-		PublicKey:        "helloworld==",
-		DNS:              "1.1.12.1",
-		WgConfigPath:     "/etc/hello/wg0.conf",
-		ServerConfigPath: "/home/louie/vpn",
-		mux:              http.NewServeMux(),
+		PublicIP:     "188.272.271.04",
+		Port:         "4566",
+		VirtualIP:    "10.22.65.87",
+		CIDR:         "16",
+		PublicKey:    "helloworld==",
+		PrivateKey:   "topsecret==",
+		DNS:          "1.1.12.1",
+		WgConfigPath: "/etc/hello/wg0.conf",
+		mux:          http.NewServeMux(),
 	}
 }

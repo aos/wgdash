@@ -5,7 +5,7 @@ import (
 	"text/template"
 )
 
-// Client is any client device added and connects to the wg server
+// Client is any client device added that connects to the wg server
 type Client struct {
 	Active    bool
 	Name      string
@@ -17,10 +17,12 @@ type Client struct {
 // WgServer holds all configuration of our server, including the router
 type WgServer struct {
 	PublicIP     string
+	Port         string
 	VirtualIP    string
 	CIDR         string
 	DNS          string
 	PublicKey    string
+	PrivateKey   string
 	WgConfigPath string
 	Clients      []Client
 
@@ -29,8 +31,9 @@ type WgServer struct {
 
 // NewWgServer instantiates the server
 func NewWgServer() *WgServer {
-	// parse our config file
-	return &WgServer{mux: http.NewServeMux()}
+	wgServer := LoadServerConfig()
+	wgServer.mux = http.NewServeMux()
+	return wgServer
 }
 
 func (s *WgServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {

@@ -16,8 +16,6 @@ func main() {
 	s := NewWgServer()
 	s.Routes()
 
-	LoadWriteServerConfig()
-
 	log.Printf("Starting server on port: %s\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, s))
 }

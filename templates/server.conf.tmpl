@@ -3,7 +3,7 @@ Address = {{.VirtualIP}}/{{.CIDR}}
 ListenPort = {{.Port}}
 PrivateKey = {{.PrivateKey}}
 PostUp = iptables -A FORWARD -i %i -o %i -j ACCEPT
-PostDown = iptables -D FORWARD -i %i -i %i -j ACCEPT
+PostDown = iptables -D FORWARD -i %i -o %i -j ACCEPT
 SaveConfig = false
 {{- range .Clients}}
 
