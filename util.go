@@ -30,6 +30,17 @@ func LoadServerConfig() *WgServer {
 	if err != nil {
 		log.Fatalf("Incorrectly formated JSON server config: %s", err)
 	}
+
+	if wgServer.PublicKey == "" || wgServer.PrivateKey == "" {
+		keys, err := wgcli.GenerateKeyPair()
+		if err != nil {
+			log.Fatalf("unable to generate wg key pair: %s", err)
+		}
+
+		wgServer.PublicKey = keys["publicKey"]
+		wgServer.PrivateKey = keys["privateKey"]
+	}
+
 	return &wgServer
 }
 
@@ -39,12 +50,7 @@ func CreateServerConfig() *WgServer {
 	if err != nil {
 		log.Fatalf("unable to generate wg key pair: %s", err)
 	}
-	pubIP, err := getPublicIPAddr()
-	if err != nil {
-		log.Fatalf("CreateServerConfig: %s", err)
-	}
 	wgServer := &WgServer{
-		PublicIP:     pubIP,
 		Port:         "51820",
 		VirtualIP:    "10.22.0.1",
 		CIDR:         "16",
@@ -54,15 +60,20 @@ func CreateServerConfig() *WgServer {
 		PrivateKey:   keys["privateKey"],
 		Clients:      []Client{},
 	}
-	err = saveBothConfigs(wgServer)
+	err = wgServer.getPublicIPAddr()
 	if err != nil {
-		log.Fatalf("Unable to save server and wg configs: %s.\nShutting down.", err)
+		log.Fatalf("unable to get public IP address: %s", err)
+	}
+
+	err = wgServer.saveBothConfigs()
+	if err != nil {
+		log.Fatalf("unable to save server and wg configs: %s", err)
 	}
 	return wgServer
 }
 
-func saveBothConfigs(conf *WgServer) error {
-	j, err := json.MarshalIndent(conf, "", "    ")
+func (serv *WgServer) saveBothConfigs() error {
+	j, err := json.MarshalIndent(serv, "", "    ")
 	if err != nil {
 		log.Printf("unable to save server config: %s", err)
 		return err
@@ -70,18 +81,18 @@ func saveBothConfigs(conf *WgServer) error {
 
 	err = ioutil.WriteFile(fileName, j, 0600)
 	if err != nil {
-		log.Printf("Unable to write server config JSON file: %s", err)
+		log.Printf("unable to write server config JSON file: %s", err)
 		return err
 	}
 
 	tmpl := template.Must(template.ParseFiles("templates/server.conf.tmpl"))
 	f, err := os.OpenFile("wg0.conf", os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
-		log.Printf("Unable to open wireguard config file: %s", err)
+		log.Printf("unable to open wireguard config file: %s", err)
 		return err
 	}
 
-	err = tmpl.Execute(f, conf)
+	err = tmpl.Execute(f, serv)
 	if err != nil {
 		log.Printf("error writing template: %s", err)
 		return err
@@ -89,14 +100,15 @@ func saveBothConfigs(conf *WgServer) error {
 	return nil
 }
 
-func getPublicIPAddr() (string, error) {
+func (serv *WgServer) getPublicIPAddr() error {
 	// Alternative: ip -4 a show wlp2s0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
 	// Note: this does not make an actual connection and can be used offline
 	conn, err := net.Dial("udp", "1.1.1.1:80")
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer conn.Close()
-	addr := conn.LocalAddr().(*net.UDPAddr)
-	return addr.IP.String(), nil
+	serv.PublicIP = conn.LocalAddr().(*net.UDPAddr).IP.String()
+
+	return nil
 }
