@@ -10,7 +10,6 @@ import (
 func TestHandleIndex(t *testing.T) {
 	t.Run("returns the homepage", func(t *testing.T) {
 		s := NewWgServer()
-		s.Routes()
 
 		request, _ := http.NewRequest(http.MethodGet, "/", nil)
 		response := httptest.NewRecorder()

@@ -1,12 +1,15 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"text/template"
 )
 
-// Client is any client device added that connects to the wg server
-type Client struct {
+// Peer is any client device added that connects to the wg server
+type Peer struct {
 	Active    bool
 	Name      string
 	PublicKey string
@@ -24,7 +27,7 @@ type WgServer struct {
 	PublicKey    string
 	PrivateKey   string
 	WgConfigPath string
-	Clients      []Client
+	Peers      []Peer
 
 	mux *http.ServeMux
 }
@@ -33,6 +36,7 @@ type WgServer struct {
 func NewWgServer() *WgServer {
 	wgServer := LoadServerConfig()
 	wgServer.mux = http.NewServeMux()
+	wgServer.Routes()
 	return wgServer
 }
 
@@ -52,4 +56,37 @@ func (s *WgServer) renderTemplatePage(tmplFname string, data interface{}) http.H
 			panic(err)
 		}
 	})
+}
+
+func (s *WgServer) handleAPI() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.RequestURI == "/api/" {
+			http.Error(w, "Couldn't find anything here :(", http.StatusNotFound)
+			return
+		}
+
+		urlParts := strings.Split(r.URL.Path, "/")
+		fmt.Printf("URL parts: %# v\n", urlParts)
+		switch urlParts[2] {
+		case "peers":
+			s.handlePeers(w, r)
+		}
+	})
+}
+
+func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("%# v\n", r.Body)
+
+	switch r.Method {
+	case "GET":
+		http.Error(w, "Not implemented", http.StatusNotImplemented)
+
+	case "POST":
+		var c Peer
+		err := json.NewDecoder(r.Body).Decode(&c)
+		fmt.Printf("client: %# v\n", c)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+	}
 }

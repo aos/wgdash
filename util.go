@@ -20,7 +20,6 @@ func LoadServerConfig() *WgServer {
 	if err != nil {
 		if os.IsNotExist(err) {
 			return CreateServerConfig()
-
 		}
 		log.Fatalf("Unable to open server config file: %s", err)
 	}
@@ -39,6 +38,10 @@ func LoadServerConfig() *WgServer {
 
 		wgServer.PublicKey = keys["publicKey"]
 		wgServer.PrivateKey = keys["privateKey"]
+		err = wgServer.saveBothConfigs()
+		if err != nil {
+			log.Fatalf("unable to save server configs: %s", err)
+		}
 	}
 
 	return &wgServer
@@ -58,7 +61,7 @@ func CreateServerConfig() *WgServer {
 		WgConfigPath: "/etc/wireguard/wg0.conf",
 		PublicKey:    keys["publicKey"],
 		PrivateKey:   keys["privateKey"],
-		Clients:      []Client{},
+		Peers:      []Peer{},
 	}
 	err = wgServer.getPublicIPAddr()
 	if err != nil {
@@ -94,7 +97,7 @@ func (serv *WgServer) saveBothConfigs() error {
 
 	err = tmpl.Execute(f, serv)
 	if err != nil {
-		log.Printf("error writing template: %s", err)
+		log.Printf("error writing template to file: %s", err)
 		return err
 	}
 	return nil

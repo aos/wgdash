@@ -8,7 +8,7 @@ import (
 	"text/template"
 )
 
-var client = Client{
+var client = Peer{
 	Active:    true,
 	Name:      "Louie",
 	PublicKey: "abcdefg0==",
@@ -27,13 +27,13 @@ SaveConfig = false
 `
 	clientOutput := `
 # Louie
-[Client]
+[Peer]
 PublicKey = abcdefg0==
 AllowedIPs = 10.11.32.87/32
 `
 	var serverTemplates = []struct {
-		numClients int
-		out        string
+		numPeers int
+		out      string
 	}{
 		{0, baseOutput},
 		{1, baseOutput + clientOutput},
@@ -41,12 +41,12 @@ AllowedIPs = 10.11.32.87/32
 	}
 
 	for _, tt := range serverTemplates {
-		t.Run(fmt.Sprintf("%d clients in template", tt.numClients), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%d peers in template", tt.numPeers), func(t *testing.T) {
 			tmpl := template.Must(template.ParseFiles("templates/server.conf.tmpl"))
 			var b bytes.Buffer
 			serv := makeTestServerConfig()
-			for i := 0; i < tt.numClients; i++ {
-				serv.Clients = append(serv.Clients, client)
+			for i := 0; i < tt.numPeers; i++ {
+				serv.Peers = append(serv.Peers, client)
 			}
 			err := tmpl.Execute(&b, *serv)
 			if err != nil {
