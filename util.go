@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/aos/wgdash/wgcli"
+	"github.com/apparentlymart/go-cidr/cidr"
 )
 
 var fileName = "server_config.json"
@@ -61,7 +63,7 @@ func CreateServerConfig() *WgServer {
 		WgConfigPath: "/etc/wireguard/wg0.conf",
 		PublicKey:    keys["publicKey"],
 		PrivateKey:   keys["privateKey"],
-		Peers:      []Peer{},
+		Peers:        []Peer{},
 	}
 	err = wgServer.getPublicIPAddr()
 	if err != nil {
@@ -89,7 +91,7 @@ func (serv *WgServer) saveBothConfigs() error {
 	}
 
 	tmpl := template.Must(template.ParseFiles("templates/server.conf.tmpl"))
-	f, err := os.OpenFile("wg0.conf", os.O_CREATE|os.O_RDWR, 0600)
+	f, err := os.OpenFile(serv.WgConfigPath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		log.Printf("unable to open wireguard config file: %s", err)
 		return err
@@ -114,4 +116,51 @@ func (serv *WgServer) getPublicIPAddr() error {
 	serv.PublicIP = conn.LocalAddr().(*net.UDPAddr).IP.String()
 
 	return nil
+}
+
+func (serv *WgServer) nextAvailableIP(assignedIP string) (string, error) {
+	usedIPs := make(map[string]struct{})
+	usedIPs[serv.VirtualIP] = struct{}{}
+
+	for _, p := range serv.Peers {
+		usedIPs[p.VirtualIP] = struct{}{}
+	}
+
+	if assignedIP != "" {
+		_, ipNet, err := net.ParseCIDR(serv.VirtualIP + "/" + serv.CIDR)
+		if err != nil {
+			return "", errors.New("nextAvailableIP: server IP address incorrect")
+		}
+
+		ip, _, err := net.ParseCIDR(assignedIP + "/" + serv.CIDR)
+		if err != nil {
+			return "", errors.New("addPeer: incorrectly formatted IP address")
+		}
+
+		if !ipNet.Contains(ip) {
+			return "", errors.New("addPeer: assigned peer IP not in server subnet")
+		}
+
+		if _, ok := usedIPs[assignedIP]; !ok {
+			return assignedIP, nil
+		}
+	}
+
+	_, ipNet, err := net.ParseCIDR(serv.VirtualIP + "/" + serv.CIDR)
+	if err != nil {
+		return "", err
+	}
+
+	networkIP, broadcastIP := cidr.AddressRange(ipNet)
+	// Don't use network address and broadcast address
+	firstIP := cidr.Inc(networkIP)
+	lastIP := cidr.Dec(broadcastIP)
+
+	for i := firstIP; !lastIP.Equal(i); i = cidr.Inc(i) {
+		if _, ok := usedIPs[i.To4().String()]; !ok {
+			return i.To4().String(), nil
+		}
+	}
+
+	return "", errors.New("nextAvailableIP: no available IPs")
 }

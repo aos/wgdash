@@ -4,17 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/aos/wgdash/wgcli"
 )
 
 // Peer is any client device added that connects to the wg server
 type Peer struct {
-	Active    bool
-	Name      string
-	PublicKey string
-	QRcode    string
-	VirtualIP string
+	Active     bool
+	ID         int
+	Name       string
+	PrivateKey string
+	PublicKey  string
+	VirtualIP  string
 }
 
 // WgServer holds all configuration of our server, including the router
@@ -27,7 +31,7 @@ type WgServer struct {
 	PublicKey    string
 	PrivateKey   string
 	WgConfigPath string
-	Peers      []Peer
+	Peers        []Peer
 
 	mux *http.ServeMux
 }
@@ -66,7 +70,6 @@ func (s *WgServer) handleAPI() http.Handler {
 		}
 
 		urlParts := strings.Split(r.URL.Path, "/")
-		fmt.Printf("URL parts: %# v\n", urlParts)
 		switch urlParts[2] {
 		case "peers":
 			s.handlePeers(w, r)
@@ -75,18 +78,91 @@ func (s *WgServer) handleAPI() http.Handler {
 }
 
 func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("%# v\n", r.Body)
-
 	switch r.Method {
 	case "GET":
-		http.Error(w, "Not implemented", http.StatusNotImplemented)
+		urlParts := strings.Split(r.URL.Path, "/")
+		if len(urlParts) < 4 {
+			http.Error(w, "Did not specify peer ID", http.StatusBadRequest)
+			return
+		}
+
+		id, err := strconv.Atoi(urlParts[3])
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		for _, p := range s.Peers {
+			if p.ID == id {
+				peerJSON, err := json.Marshal(p)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(peerJSON)
+				return
+			}
+		}
+
+		http.Error(w, fmt.Sprintf("Peer %d not found", id), http.StatusNotFound)
 
 	case "POST":
-		var c Peer
-		err := json.NewDecoder(r.Body).Decode(&c)
-		fmt.Printf("client: %# v\n", c)
+		var p Peer
+		err := json.NewDecoder(r.Body).Decode(&p)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
+
+		keys, err := wgcli.GenerateKeyPair()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		peerIP, err := s.nextAvailableIP(p.VirtualIP)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		p.VirtualIP = peerIP
+		p.PrivateKey = keys["privateKey"]
+		p.PublicKey = keys["publicKey"]
+		p.ID = len(s.Peers) + 1
+		s.Peers = append(s.Peers, p)
+
+		err = s.saveBothConfigs()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = wgcli.AddPeer(p.PublicKey, p.VirtualIP)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		js, err := json.Marshal(struct {
+			StatusCode    int
+			Message       string
+			PeerID        int
+			PeerVirtualIP string
+		}{
+			200,
+			"Peer added successfully",
+			p.ID,
+			p.VirtualIP,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
 	}
+	return
 }

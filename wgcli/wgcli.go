@@ -27,3 +27,13 @@ func GenerateKeyPair() (map[string]string, error) {
 		"publicKey":  strings.TrimSpace(string(pub)),
 	}, nil
 }
+
+// AddPeer adds a new peer to an active server
+func AddPeer(pubkey, ip string) error {
+	cmd := exec.Command("wg", "set", "wg0", "peer", pubkey, "allowed-ips", ip+"/32")
+	res, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf(fmt.Sprint(err) + ": " + string(res))
+	}
+	return nil
+}
