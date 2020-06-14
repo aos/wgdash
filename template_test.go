@@ -9,11 +9,12 @@ import (
 )
 
 var client = Peer{
-	Active:    true,
-	Name:      "Louie",
-	PublicKey: "abcdefg0==",
-	QRcode:    "andefdf==",
-	VirtualIP: "10.11.32.87",
+	Active:     true,
+	Name:       "Louie",
+	ID:         3,
+	PublicKey:  "abcdefg0==",
+	PrivateKey: "shh==secret",
+	VirtualIP:  "10.11.32.87",
 }
 
 func TestServerConfigTemplates(t *testing.T) {

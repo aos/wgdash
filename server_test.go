@@ -9,7 +9,7 @@ import (
 
 func TestHandleIndex(t *testing.T) {
 	t.Run("returns the homepage", func(t *testing.T) {
-		s := NewWgServer()
+		s := mockNewWgServer()
 
 		request, _ := http.NewRequest(http.MethodGet, "/", nil)
 		response := httptest.NewRecorder()
@@ -22,4 +22,10 @@ func TestHandleIndex(t *testing.T) {
 			t.Errorf("got %q, want %q", got, want)
 		}
 	})
+}
+
+func mockNewWgServer() *WgServer {
+	wgServer := makeTestServerConfig()
+	wgServer.Routes()
+	return wgServer
 }
