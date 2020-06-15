@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"net/http"
 	"testing"
 	"text/template"
@@ -45,11 +46,11 @@ AllowedIPs = 10.11.32.87/32
 		t.Run(fmt.Sprintf("%d peers in template", tt.numPeers), func(t *testing.T) {
 			tmpl := template.Must(template.ParseFiles("templates/server.conf.tmpl"))
 			var b bytes.Buffer
-			serv := makeTestServerConfig()
+			s := makeTestServerConfig()
 			for i := 0; i < tt.numPeers; i++ {
-				serv.Peers = append(serv.Peers, client)
+				s.Peers = append(s.Peers, client)
 			}
-			err := tmpl.Execute(&b, *serv)
+			err := tmpl.Execute(&b, *s)
 			if err != nil {
 				t.Fatalf("error opening template: %s", err)
 			}
@@ -57,6 +58,52 @@ AllowedIPs = 10.11.32.87/32
 				t.Errorf("got: %s, want: %s\n", b.String(), tt.out)
 			}
 		})
+	}
+}
+
+func TestClientConfigTemplate(t *testing.T) {
+	out := `[Interface]
+Address = 10.11.32.87/32
+PrivateKey = shh==secret
+PostUp = iptables -A FORWARD -i %i -o %i -j ACCEPT
+PostDown = iptables -D FORWARD -i %i -o %i -j ACCEPT
+SaveConfig = false
+
+[Peer]
+PublicKey = helloworld==
+Endpoint = 188.272.271.04:4566
+AllowedIPs = 10.22.0.0/16
+`
+
+	tmpl := template.Must(template.ParseFiles("templates/client.conf.tmpl"))
+	var b bytes.Buffer
+	s := makeTestServerConfig()
+	_, ipNet, err := net.ParseCIDR(s.VirtualIP + "/" + s.CIDR)
+	if err != nil {
+		t.Errorf("error parsing CIDR: %s", err)
+	}
+
+	err = tmpl.Execute(&b, struct {
+		VirtualIP       string
+		PrivateKey      string
+		ServerPublicKey string
+		PublicIP        string
+		Port            string
+		AllowedIPs      string
+	}{
+		VirtualIP:       client.VirtualIP,
+		PrivateKey:      client.PrivateKey,
+		ServerPublicKey: s.PublicKey,
+		PublicIP:        s.PublicIP,
+		Port:            s.Port,
+		AllowedIPs:      ipNet.String(),
+	})
+
+	if err != nil {
+		t.Fatalf("error opening template: %s", err)
+	}
+	if b.String() != out {
+		t.Errorf("got: %s, want: %s\n", b.String(), out)
 	}
 }
 

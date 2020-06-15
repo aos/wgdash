@@ -55,8 +55,9 @@ func CreateServerConfig() *WgServer {
 	if err != nil {
 		log.Fatalf("unable to generate wg key pair: %s", err)
 	}
+	// TODO: read from a sample config?
 	wgServer := &WgServer{
-		Port:         "51820",
+		Port:         "58210",
 		VirtualIP:    "10.22.0.1",
 		CIDR:         "16",
 		DNS:          "1.1.1.1",
@@ -77,8 +78,8 @@ func CreateServerConfig() *WgServer {
 	return wgServer
 }
 
-func (serv *WgServer) saveBothConfigs() error {
-	j, err := json.MarshalIndent(serv, "", "    ")
+func (s *WgServer) saveBothConfigs() error {
+	j, err := json.MarshalIndent(s, "", "    ")
 	if err != nil {
 		log.Printf("unable to save server config: %s", err)
 		return err
@@ -91,13 +92,14 @@ func (serv *WgServer) saveBothConfigs() error {
 	}
 
 	tmpl := template.Must(template.ParseFiles("templates/server.conf.tmpl"))
-	f, err := os.OpenFile(serv.WgConfigPath, os.O_CREATE|os.O_RDWR, 0600)
+	f, err := os.OpenFile(s.WgConfigPath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		log.Printf("unable to open wireguard config file: %s", err)
 		return err
 	}
+	defer f.Close()
 
-	err = tmpl.Execute(f, serv)
+	err = tmpl.Execute(f, s)
 	if err != nil {
 		log.Printf("error writing template to file: %s", err)
 		return err
@@ -105,7 +107,7 @@ func (serv *WgServer) saveBothConfigs() error {
 	return nil
 }
 
-func (serv *WgServer) getPublicIPAddr() error {
+func (s *WgServer) getPublicIPAddr() error {
 	// Alternative: ip -4 a show wlp2s0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
 	// Note: this does not make an actual connection and can be used offline
 	conn, err := net.Dial("udp", "1.1.1.1:80")
@@ -113,26 +115,26 @@ func (serv *WgServer) getPublicIPAddr() error {
 		return err
 	}
 	defer conn.Close()
-	serv.PublicIP = conn.LocalAddr().(*net.UDPAddr).IP.String()
+	s.PublicIP = conn.LocalAddr().(*net.UDPAddr).IP.String()
 
 	return nil
 }
 
-func (serv *WgServer) nextAvailableIP(assignedIP string) (string, error) {
+func (s *WgServer) nextAvailableIP(assignedIP string) (string, error) {
 	usedIPs := make(map[string]struct{})
-	usedIPs[serv.VirtualIP] = struct{}{}
+	usedIPs[s.VirtualIP] = struct{}{}
 
-	for _, p := range serv.Peers {
+	for _, p := range s.Peers {
 		usedIPs[p.VirtualIP] = struct{}{}
 	}
 
 	if assignedIP != "" {
-		_, ipNet, err := net.ParseCIDR(serv.VirtualIP + "/" + serv.CIDR)
+		_, ipNet, err := net.ParseCIDR(s.VirtualIP + "/" + s.CIDR)
 		if err != nil {
 			return "", errors.New("nextAvailableIP: server IP address incorrect")
 		}
 
-		ip, _, err := net.ParseCIDR(assignedIP + "/" + serv.CIDR)
+		ip, _, err := net.ParseCIDR(assignedIP + "/" + s.CIDR)
 		if err != nil {
 			return "", errors.New("addPeer: incorrectly formatted IP address")
 		}
@@ -146,7 +148,7 @@ func (serv *WgServer) nextAvailableIP(assignedIP string) (string, error) {
 		}
 	}
 
-	_, ipNet, err := net.ParseCIDR(serv.VirtualIP + "/" + serv.CIDR)
+	_, ipNet, err := net.ParseCIDR(s.VirtualIP + "/" + s.CIDR)
 	if err != nil {
 		return "", err
 	}

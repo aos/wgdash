@@ -1,8 +1,11 @@
 [Interface]
-Address =
-DNS =
-PrivateKey =
+Address = {{.VirtualIP}}/32
+PrivateKey = {{.PrivateKey}}
+PostUp = iptables -A FORWARD -i %i -o %i -j ACCEPT
+PostDown = iptables -D FORWARD -i %i -o %i -j ACCEPT
+SaveConfig = false
 
 [Peer]
+PublicKey = {{.ServerPublicKey}}
 Endpoint = {{.PublicIP}}:{{.Port}}
-AllowedIPs =
+AllowedIPs = {{.AllowedIPs}}

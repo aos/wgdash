@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -53,6 +54,7 @@ func (s *WgServer) renderTemplatePage(tmplFname string, data interface{}) http.H
 		t, err := template.ParseFiles("templates/" + tmplFname)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		err = t.Execute(w, data)
@@ -94,13 +96,29 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 
 		for _, p := range s.Peers {
 			if p.ID == id {
-				peerJSON, err := json.Marshal(p)
+				_, ipNet, err := net.ParseCIDR(s.VirtualIP + "/" + s.CIDR)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				w.Header().Set("Content-Type", "application/json")
-				w.Write(peerJSON)
+
+				tmpl := template.Must(template.ParseFiles("templates/client.conf.tmpl"))
+				tmpl.Execute(w, struct {
+					VirtualIP       string
+					PrivateKey      string
+					ServerPublicKey string
+					PublicIP        string
+					Port            string
+					AllowedIPs      string
+				}{
+					VirtualIP:       p.VirtualIP,
+					PrivateKey:      p.PrivateKey,
+					ServerPublicKey: s.PublicKey,
+					PublicIP:        s.PublicIP,
+					Port:            s.Port,
+					AllowedIPs:      ipNet.String(),
+				})
+
 				return
 			}
 		}
@@ -131,15 +149,15 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 		p.PrivateKey = keys["privateKey"]
 		p.PublicKey = keys["publicKey"]
 		p.ID = len(s.Peers) + 1
-		s.Peers = append(s.Peers, p)
 
-		err = s.saveBothConfigs()
+		err = wgcli.AddPeer(p.PublicKey, p.VirtualIP)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		err = wgcli.AddPeer(p.PublicKey, p.VirtualIP)
+		s.Peers = append(s.Peers, p)
+		err = s.saveBothConfigs()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
