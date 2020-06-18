@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"net"
-	"net/http"
 	"testing"
 	"text/template"
 )
 
-var client = Peer{
+var peer = Peer{
 	Active:     true,
 	Name:       "Louie",
 	ID:         3,
@@ -27,7 +26,7 @@ PostUp = iptables -A FORWARD -i %i -o %i -j ACCEPT
 PostDown = iptables -D FORWARD -i %i -o %i -j ACCEPT
 SaveConfig = false
 `
-	clientOutput := `
+	peerOutput := `
 # Louie
 [Peer]
 PublicKey = abcdefg0==
@@ -38,17 +37,17 @@ AllowedIPs = 10.11.32.87/32
 		out      string
 	}{
 		{0, baseOutput},
-		{1, baseOutput + clientOutput},
-		{2, baseOutput + clientOutput + clientOutput},
+		{1, baseOutput + peerOutput},
+		{2, baseOutput + peerOutput + peerOutput},
 	}
 
 	for _, tt := range serverTemplates {
 		t.Run(fmt.Sprintf("%d peers in template", tt.numPeers), func(t *testing.T) {
 			tmpl := template.Must(template.ParseFiles("templates/server.conf.tmpl"))
 			var b bytes.Buffer
-			s := makeTestServerConfig()
+			s := MakeTestServerConfig()
 			for i := 0; i < tt.numPeers; i++ {
-				s.Peers = append(s.Peers, client)
+				s.Peers = append(s.Peers, peer)
 			}
 			err := tmpl.Execute(&b, *s)
 			if err != nil {
@@ -61,7 +60,7 @@ AllowedIPs = 10.11.32.87/32
 	}
 }
 
-func TestClientConfigTemplate(t *testing.T) {
+func TestPeerConfigTemplate(t *testing.T) {
 	out := `[Interface]
 Address = 10.11.32.87/32
 PrivateKey = shh==secret
@@ -75,9 +74,9 @@ Endpoint = 188.272.271.04:4566
 AllowedIPs = 10.22.0.0/16
 `
 
-	tmpl := template.Must(template.ParseFiles("templates/client.conf.tmpl"))
+	tmpl := template.Must(template.ParseFiles("templates/peer.conf.tmpl"))
 	var b bytes.Buffer
-	s := makeTestServerConfig()
+	s := MakeTestServerConfig()
 	_, ipNet, err := net.ParseCIDR(s.VirtualIP + "/" + s.CIDR)
 	if err != nil {
 		t.Errorf("error parsing CIDR: %s", err)
@@ -91,8 +90,8 @@ AllowedIPs = 10.22.0.0/16
 		Port            string
 		AllowedIPs      string
 	}{
-		VirtualIP:       client.VirtualIP,
-		PrivateKey:      client.PrivateKey,
+		VirtualIP:       peer.VirtualIP,
+		PrivateKey:      peer.PrivateKey,
 		ServerPublicKey: s.PublicKey,
 		PublicIP:        s.PublicIP,
 		Port:            s.Port,
@@ -104,19 +103,5 @@ AllowedIPs = 10.22.0.0/16
 	}
 	if b.String() != out {
 		t.Errorf("got: %s, want: %s\n", b.String(), out)
-	}
-}
-
-func makeTestServerConfig() *WgServer {
-	return &WgServer{
-		PublicIP:     "188.272.271.04",
-		Port:         "4566",
-		VirtualIP:    "10.22.65.87",
-		CIDR:         "16",
-		PublicKey:    "helloworld==",
-		PrivateKey:   "topsecret==",
-		DNS:          "1.1.12.1",
-		WgConfigPath: "/etc/hello/wg0.conf",
-		mux:          http.NewServeMux(),
 	}
 }

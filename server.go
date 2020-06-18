@@ -102,7 +102,7 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
-				tmpl := template.Must(template.ParseFiles("templates/client.conf.tmpl"))
+				tmpl := template.Must(template.ParseFiles("templates/peer.conf.tmpl"))
 				tmpl.Execute(w, struct {
 					VirtualIP       string
 					PrivateKey      string
@@ -150,6 +150,7 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 		p.PublicKey = keys["publicKey"]
 		p.ID = len(s.Peers) + 1
 
+		// We want to make sure that wg is actually running here
 		err = wgcli.AddPeer(p.PublicKey, p.VirtualIP)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
