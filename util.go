@@ -50,6 +50,13 @@ func LoadServerConfig() *WgServer {
 		}
 	}
 
+	if _, err := os.Stat(wgServer.WgConfigPath); os.IsNotExist(err) {
+		wgServer.saveBothConfigs()
+		if err != nil {
+			log.Fatalf("unable to save server configs: %s", err)
+		}
+	}
+
 	return &wgServer
 }
 
@@ -96,7 +103,7 @@ func (s *WgServer) saveBothConfigs() error {
 	}
 
 	tmpl := template.Must(template.ParseFiles("templates/server.conf.tmpl"))
-	f, err := os.OpenFile(s.WgConfigPath, os.O_CREATE|os.O_RDWR, 0600)
+	f, err := os.OpenFile(s.WgConfigPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		log.Printf("unable to open wireguard config file: %s", err)
 		return err

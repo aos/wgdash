@@ -187,6 +187,45 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
+
+	case "DELETE":
+		urlParts := strings.Split(r.URL.Path, "/")
+		if len(urlParts) < 4 {
+			http.Error(w, "Did not specify peer ID", http.StatusBadRequest)
+			return
+		}
+
+		id, err := strconv.Atoi(urlParts[3])
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		for i, p := range s.Peers {
+			if p.ID == id {
+				if s.Active {
+					err = wgcli.DeletePeer(p.PublicKey)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+				}
+				s.Peers = append(s.Peers[:i], s.Peers[i+1:]...)
+
+				err = s.saveBothConfigs()
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				return
+			}
+		}
+
+		http.Error(w, fmt.Sprintf("Peer %d not found", id), http.StatusNotFound)
+
+	case "PUT":
+		http.Error(w, fmt.Sprint("Not implemented yet"), http.StatusNotImplemented)
 	}
 	return
 }
