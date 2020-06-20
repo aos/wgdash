@@ -134,17 +134,16 @@ func (s *WgServer) getPublicIPAddr() error {
 func (s *WgServer) nextAvailableIP(assignedIP string) (string, error) {
 	usedIPs := make(map[string]struct{})
 	usedIPs[s.VirtualIP] = struct{}{}
-
 	for _, p := range s.Peers {
 		usedIPs[p.VirtualIP] = struct{}{}
 	}
 
-	if assignedIP != "" {
-		_, ipNet, err := net.ParseCIDR(s.VirtualIP + "/" + s.CIDR)
-		if err != nil {
-			return "", errors.New("nextAvailableIP: server IP address incorrect")
-		}
+	_, ipNet, err := net.ParseCIDR(s.VirtualIP + "/" + s.CIDR)
+	if err != nil {
+		return "", errors.New("nextAvailableIP: server IP address incorrect")
+	}
 
+	if assignedIP != "" {
 		ip, _, err := net.ParseCIDR(assignedIP + "/" + s.CIDR)
 		if err != nil {
 			return "", errors.New("addPeer: incorrectly formatted IP address")
@@ -157,11 +156,6 @@ func (s *WgServer) nextAvailableIP(assignedIP string) (string, error) {
 		if _, ok := usedIPs[assignedIP]; !ok {
 			return assignedIP, nil
 		}
-	}
-
-	_, ipNet, err := net.ParseCIDR(s.VirtualIP + "/" + s.CIDR)
-	if err != nil {
-		return "", err
 	}
 
 	networkIP, broadcastIP := cidr.AddressRange(ipNet)
