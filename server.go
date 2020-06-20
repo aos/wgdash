@@ -32,6 +32,7 @@ type WgServer struct {
 	PublicKey    string
 	PrivateKey   string
 	WgConfigPath string
+	Active       bool
 	Peers        []Peer
 
 	mux *http.ServeMux
@@ -42,6 +43,8 @@ func NewWgServer() *WgServer {
 	wgServer := LoadServerConfig()
 	wgServer.mux = http.NewServeMux()
 	wgServer.Routes()
+	wgServer.ActivateServer()
+
 	return wgServer
 }
 
@@ -151,10 +154,12 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 		p.ID = len(s.Peers) + 1
 
 		// We want to make sure that wg is actually running here
-		err = wgcli.AddPeer(p.PublicKey, p.VirtualIP)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if s.Active {
+			err = wgcli.AddPeer(p.PublicKey, p.VirtualIP)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 
 		s.Peers = append(s.Peers, p)

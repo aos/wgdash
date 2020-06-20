@@ -29,7 +29,7 @@ func TestHandleIndex(t *testing.T) {
 }
 
 func TestHandlePeersAPI(t *testing.T) {
-	t.Run("Returns peer information", func(t *testing.T) {
+	t.Run("GET /api/peers/3", func(t *testing.T) {
 		s := mockNewWgServer()
 		s.Peers = append(s.Peers, Peer{
 			Active:     true,

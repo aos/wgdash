@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"text/template"
 
 	"github.com/aos/wgdash/wgcli"
@@ -32,6 +33,9 @@ func LoadServerConfig() *WgServer {
 		log.Fatalf("Incorrectly formated JSON server config: %s", err)
 	}
 
+	// TODO: this could potentially break if we find a template that does
+	// not have port, or other values filled out. Need to initialize with
+	// defaults
 	if wgServer.PublicKey == "" || wgServer.PrivateKey == "" {
 		keys, err := wgcli.GenerateKeyPair()
 		if err != nil {
@@ -55,7 +59,7 @@ func CreateServerConfig() *WgServer {
 	if err != nil {
 		log.Fatalf("unable to generate wg key pair: %s", err)
 	}
-	// TODO: read from a sample config?
+	// TODO: read from a template
 	wgServer := &WgServer{
 		Port:         "58210",
 		VirtualIP:    "10.22.0.1",
@@ -165,4 +169,22 @@ func (s *WgServer) nextAvailableIP(assignedIP string) (string, error) {
 	}
 
 	return "", errors.New("nextAvailableIP: no available IPs")
+}
+
+// CheckServerActive queries systemd to check that wg server is up
+func (s *WgServer) CheckServerActive() {
+	cmd := exec.Command("systemctl", "is-active", "--quiet", "wg-quick@wg0")
+	if err := cmd.Run(); err != nil {
+		s.Active = false
+	}
+	s.Active = true
+}
+
+// ActivateServer starts wg server through systemd wg-quick unit
+func (s *WgServer) ActivateServer() {
+	cmd := exec.Command("systemctl", "start", "wg-quick@wg0")
+	if err := cmd.Run(); err != nil {
+		s.Active = false
+	}
+	s.Active = true
 }
