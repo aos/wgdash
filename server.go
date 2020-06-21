@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"log"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/aos/wgdash/wgcli"
 )
@@ -54,10 +55,9 @@ func (s *WgServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *WgServer) renderTemplatePage(tmplFname string, data interface{}) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t, err := template.ParseFiles("templates/" + tmplFname)
+		t, err := template.ParseFiles("templates/base.html.tmpl", "templates/"+tmplFname)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
 		}
 
 		err = t.Execute(w, data)
@@ -77,12 +77,12 @@ func (s *WgServer) handleAPI() http.Handler {
 		urlParts := strings.Split(r.URL.Path, "/")
 		switch urlParts[2] {
 		case "peers":
-			s.handlePeers(w, r)
+			s.handlePeersAPI(w, r)
 		}
 	})
 }
 
-func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
+func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		urlParts := strings.Split(r.URL.Path, "/")
@@ -140,18 +140,22 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 		err := json.NewDecoder(r.Body).Decode(&p)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Printf("error (add_peer - decode JSON): %s\n", err.Error())
 			return
 		}
+		defer r.Body.Close()
 
 		keys, err := wgcli.GenerateKeyPair()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Printf("error (add_peer - generate key pair): %s\n", err.Error())
 			return
 		}
 
 		peerIP, err := s.nextAvailableIP(p.VirtualIP)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Printf("error: (add_peer - available IP): %s\n", err.Error())
 			return
 		}
 
@@ -165,6 +169,7 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 			err = wgcli.AddPeer(p.PublicKey, p.VirtualIP)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Printf("error: (add_peer - wg add peer): %s\n", err.Error())
 				return
 			}
 		}
@@ -173,6 +178,7 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 		err = s.saveBothConfigs()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Printf("error: (add_peer - save configs): %s\n", err.Error())
 			return
 		}
 
@@ -192,6 +198,7 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		log.Printf("success (add_peer): %s\n", js)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 

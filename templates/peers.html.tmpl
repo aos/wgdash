@@ -1,2 +1,67 @@
+{{ define "title" }}<title>Peers</title>{{ end }}
+
+{{ define "content" }}
 <h1>Peers</h1>
-<p>Add/Remove peers here</p>
+
+<div id="peers">
+  <ul>
+  {{ range .Peers }}
+    <li data-id="{{ .ID }}"><b>Peer</b>: {{ .ID }} <b>|</b> {{ .Name }}
+    <b>|</b> {{ .VirtualIP }} <b>|</b> {{ .Active }} <input type="submit" class="delete_peer" value="X"></input></li>
+  {{ end }}
+  </ul>
+</div>
+
+<hr />
+<div>
+  <form id="add_peer">
+    <input type="text" name="name" placeholder="Name">
+    <input type="text" name="vip" placeholder="Virtual IP">
+    <input type="submit" value="Add">
+    <div id="response_message" style="color: green;"><div>
+    <div id="error" style="color: red;"></div>
+  </form>
+</div>
+
+<script>
+$("#add_peer").submit(function(e) {
+  e.preventDefault();
+  const name = $(this).find("input[name='name']");
+  const vip = $(this).find("input[name='vip']");
+
+  if (name.val() === "") {
+    $("#error").text("Please provide a name!").show().fadeOut(5000);
+    return
+  }
+
+  $.ajax({
+    method: "POST",
+    url: "/api/peers",
+    data: JSON.stringify({ name: name.val(), virtualip: vip.val() })
+  })
+  .done(function() {
+    $("#response_message").text("success");
+    location.reload();
+  })
+  .fail(function(d, status, err) {
+    $("#error").text("error:"+ d.responseText);
+    console.log("error:", d.responseText, "status:", status, "error:", err);
+  });
+});
+
+$(".delete_peer").click(function() {
+  $.ajax({
+    method: "DELETE",
+    url: "/api/peers/"+$(this).parent().attr("data-id"),
+  })
+  .done(function() {
+    $("#response_message").text("success");
+    location.reload();
+  })
+  .fail(function(d, status, err) {
+    $("#error").text("error:"+ d.responseText);
+    console.log("error:", d.responseText, "status:", status, "error:", err);
+  });
+});
+</script>
+{{ end }}

@@ -1,14 +1,14 @@
 [Interface]
-Address = {{.VirtualIP}}/{{.CIDR}}
-ListenPort = {{.Port}}
-PrivateKey = {{.PrivateKey}}
+Address = {{ .VirtualIP }}/{{ .CIDR }}
+ListenPort = {{ .Port }}
+PrivateKey = {{ .PrivateKey }}
 PostUp = iptables -A FORWARD -i %i -o %i -j ACCEPT
 PostDown = iptables -D FORWARD -i %i -o %i -j ACCEPT
 SaveConfig = false
-{{- range .Peers}}
+{{- range .Peers }}
 
-# {{.Name}}
+# {{ .Name }}
 [Peer]
-PublicKey = {{.PublicKey}}
-AllowedIPs = {{.VirtualIP}}/32
-{{- end}}
+PublicKey = {{ .PublicKey }}
+AllowedIPs = {{ .VirtualIP }}/32
+{{- end }}

@@ -1,13 +1,13 @@
 [Interface]
-Address = {{.VirtualIP}}/32
-PrivateKey = {{.PrivateKey}}
-{{- if not .QRCode}}
+Address = {{ .VirtualIP }}/32
+PrivateKey = {{ .PrivateKey }}
+{{- if not .QRCode }}
 PostUp = iptables -A FORWARD -i %i -o %i -j ACCEPT
 PostDown = iptables -D FORWARD -i %i -o %i -j ACCEPT
 SaveConfig = false
-{{- end}}
+{{- end }}
 
 [Peer]
-PublicKey = {{.ServerPublicKey}}
-Endpoint = {{.PublicIP}}:{{.Port}}
-AllowedIPs = {{.AllowedIPs}}
+PublicKey = {{ .ServerPublicKey }}
+Endpoint = {{ .PublicIP }}:{{ .Port }}
+AllowedIPs = {{ .AllowedIPs }}
