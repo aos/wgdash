@@ -61,7 +61,11 @@ AllowedIPs = 10.11.32.87/32
 }
 
 func TestPeerConfigTemplate(t *testing.T) {
-	out := `[Interface]
+	var peerTemplates = []struct {
+		qr     bool
+		output string
+	}{
+		{false, `[Interface]
 Address = 10.11.32.87/32
 PrivateKey = shh==secret
 PostUp = iptables -A FORWARD -i %i -o %i -j ACCEPT
@@ -72,36 +76,52 @@ SaveConfig = false
 PublicKey = helloworld==
 Endpoint = 188.272.271.04:4566
 AllowedIPs = 10.22.0.0/16
-`
+`},
+		{true, `[Interface]
+Address = 10.11.32.87/32
+PrivateKey = shh==secret
 
-	tmpl := template.Must(template.ParseFiles("templates/peer.conf.tmpl"))
-	var b bytes.Buffer
-	s := MakeTestServerConfig()
-	_, ipNet, err := net.ParseCIDR(s.VirtualIP + "/" + s.CIDR)
-	if err != nil {
-		t.Errorf("error parsing CIDR: %s", err)
+[Peer]
+PublicKey = helloworld==
+Endpoint = 188.272.271.04:4566
+AllowedIPs = 10.22.0.0/16
+`},
 	}
 
-	err = tmpl.Execute(&b, struct {
-		VirtualIP       string
-		PrivateKey      string
-		ServerPublicKey string
-		PublicIP        string
-		Port            string
-		AllowedIPs      string
-	}{
-		VirtualIP:       peer.VirtualIP,
-		PrivateKey:      peer.PrivateKey,
-		ServerPublicKey: s.PublicKey,
-		PublicIP:        s.PublicIP,
-		Port:            s.Port,
-		AllowedIPs:      ipNet.String(),
-	})
+	for _, tt := range peerTemplates {
+		t.Run(fmt.Sprintf("QR code requested: %v", tt.qr), func(t *testing.T) {
+			tmpl := template.Must(template.ParseFiles("templates/peer.conf.tmpl"))
+			var b bytes.Buffer
+			s := MakeTestServerConfig()
+			_, ipNet, err := net.ParseCIDR(s.VirtualIP + "/" + s.CIDR)
+			if err != nil {
+				t.Errorf("error parsing CIDR: %s", err)
+			}
 
-	if err != nil {
-		t.Fatalf("error opening template: %s", err)
-	}
-	if b.String() != out {
-		t.Errorf("got: %s, want: %s\n", b.String(), out)
+			err = tmpl.Execute(&b, struct {
+				VirtualIP       string
+				PrivateKey      string
+				ServerPublicKey string
+				PublicIP        string
+				Port            string
+				AllowedIPs      string
+				QRCode          bool
+			}{
+				VirtualIP:       peer.VirtualIP,
+				PrivateKey:      peer.PrivateKey,
+				ServerPublicKey: s.PublicKey,
+				PublicIP:        s.PublicIP,
+				Port:            s.Port,
+				AllowedIPs:      ipNet.String(),
+				QRCode:          tt.qr,
+			})
+
+			if err != nil {
+				t.Fatalf("error opening template: %s", err)
+			}
+			if b.String() != tt.output {
+				t.Errorf("got: %s, want: %s\n", b.String(), tt.output)
+			}
+		})
 	}
 }

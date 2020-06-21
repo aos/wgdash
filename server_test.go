@@ -29,38 +29,48 @@ func TestHandleIndex(t *testing.T) {
 }
 
 func TestHandlePeersAPI(t *testing.T) {
-	t.Run("GET /api/peers/3", func(t *testing.T) {
-		s := mockNewWgServer()
-		s.Peers = append(s.Peers, Peer{
-			Active:     true,
-			Name:       "Louie",
-			ID:         3,
-			PublicKey:  "abcdefg0==",
-			PrivateKey: "shh==secret",
-			VirtualIP:  "10.11.32.87",
+	var qrTests = []struct {
+		qrRequest string
+		qr        bool
+	}{
+		{"/api/peers/3?qr=true", true},
+		{"/api/peers/3", false},
+	}
+
+	for _, tt := range qrTests {
+		t.Run("GET "+tt.qrRequest, func(t *testing.T) {
+			s := mockNewWgServer()
+			s.Peers = append(s.Peers, Peer{
+				Active:     true,
+				Name:       "Louie",
+				ID:         3,
+				PublicKey:  "abcdefg0==",
+				PrivateKey: "shh==secret",
+				VirtualIP:  "10.11.32.87",
+			})
+
+			req, err := http.NewRequest(http.MethodGet, tt.qrRequest, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			res := httptest.NewRecorder()
+			s.ServeHTTP(res, req)
+
+			if status := res.Code; status != http.StatusOK {
+				t.Errorf("handler returned wrong status code: got %v, want %v",
+					status, http.StatusOK)
+			}
+
+			got := res.Body.String()
+			want := "PostUp ="
+
+			if strings.Contains(got, want) && tt.qr {
+				t.Errorf("handler returned unexpected output: got %v, want %v",
+					got, want)
+			}
 		})
-
-		req, err := http.NewRequest(http.MethodGet, "/api/peers/3", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		res := httptest.NewRecorder()
-		s.ServeHTTP(res, req)
-
-		if status := res.Code; status != http.StatusOK {
-			t.Errorf("handler returned wrong status code: got %v, want %v",
-				status, http.StatusOK)
-		}
-
-		got := res.Body.String()
-		want := "PrivateKey = shh==secret"
-
-		if !strings.Contains(got, want) {
-			t.Errorf("handler returned unexpected output: got %v, want %v",
-				got, want)
-		}
-	})
+	}
 }
 
 func mockNewWgServer() *WgServer {

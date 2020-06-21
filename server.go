@@ -96,13 +96,18 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
 		for _, p := range s.Peers {
 			if p.ID == id {
 				_, ipNet, err := net.ParseCIDR(s.VirtualIP + "/" + s.CIDR)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
+				}
+
+				params := r.URL.Query()
+				qrCode := false
+				if v, ok := params["qr"]; ok && v[0] == "true" {
+					qrCode = true
 				}
 
 				tmpl := template.Must(template.ParseFiles("templates/peer.conf.tmpl"))
@@ -113,6 +118,7 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 					PublicIP        string
 					Port            string
 					AllowedIPs      string
+					QRCode          bool
 				}{
 					VirtualIP:       p.VirtualIP,
 					PrivateKey:      p.PrivateKey,
@@ -120,6 +126,7 @@ func (s *WgServer) handlePeers(w http.ResponseWriter, r *http.Request) {
 					PublicIP:        s.PublicIP,
 					Port:            s.Port,
 					AllowedIPs:      ipNet.String(),
+					QRCode:          qrCode,
 				})
 
 				return
