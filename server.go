@@ -1,16 +1,20 @@
 package main
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"html/template"
+	htmlTemp "html/template"
 	"log"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/aos/wgdash/wgcli"
+	"github.com/skip2/go-qrcode"
 )
 
 // Peer is any client device added that connects to the wg server
@@ -55,7 +59,7 @@ func (s *WgServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *WgServer) renderTemplatePage(tmplFname string, data interface{}) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t, err := template.ParseFiles("templates/base.html.tmpl", "templates/"+tmplFname)
+		t, err := htmlTemp.ParseFiles("templates/base.html.tmpl", "templates/"+tmplFname)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -110,8 +114,9 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 					qrCode = true
 				}
 
+				var buf bytes.Buffer
 				tmpl := template.Must(template.ParseFiles("templates/peer.conf.tmpl"))
-				tmpl.Execute(w, struct {
+				tmpl.Execute(&buf, struct {
 					VirtualIP       string
 					PrivateKey      string
 					ServerPublicKey string
@@ -128,6 +133,20 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 					AllowedIPs:      ipNet.String(),
 					QRCode:          qrCode,
 				})
+
+				if qrCode {
+					qr, err := qrcode.Encode(buf.String(), qrcode.Medium, 256)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						log.Printf("error (get_peer - generate qr code): %s\n", err.Error())
+					}
+					encoder := base64.NewEncoder(base64.StdEncoding, w)
+					encoder.Write(qr)
+				} else {
+					w.Header().Set("Content-Disposition", "attachment; filename=wg0.conf")
+					w.Header().Set("Content-Type", "application/octet-stream")
+					w.Write(buf.Bytes())
+				}
 
 				return
 			}

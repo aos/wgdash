@@ -3,13 +3,16 @@
 {{ define "content" }}
 <h1>Peers</h1>
 
-<div id="peers">
-  <ul>
+<div class="grid-container" id="peers">
   {{ range .Peers }}
-    <li data-id="{{ .ID }}"><b>Peer</b>: {{ .ID }} <b>|</b> {{ .Name }}
-    <b>|</b> {{ .VirtualIP }} <b>|</b> {{ .Active }} <input type="submit" class="delete_peer" value="X"></input></li>
+    <div class="grid-item" data-id="{{ .ID }}"><b>Peer</b>: {{ .ID }} <b>|</b> {{ .Name }}
+      <b>|</b> {{ .VirtualIP }} <b>|</b> {{ .Active }}
+      <a href="/api/peers/{{ .ID }}" download="wg0.conf"><input type="button" value="Download"></input></a>
+      <input type="submit" class="show_qr" value="QR Code"></input>
+      <input type="submit" class="delete_peer" value="X"></input>
+    </div>
   {{ end }}
-  </ul>
+  <div class="grid-image" onclick="clearCode()"></div>
 </div>
 
 <hr />
@@ -26,8 +29,9 @@
 <script>
 $("#add_peer").submit(function(e) {
   e.preventDefault();
-  const name = $(this).find("input[name='name']");
-  const vip = $(this).find("input[name='vip']");
+  const $form = $(this);
+  const name = $form.find("input[name='name']");
+  const vip = $form.find("input[name='vip']");
 
   if (name.val() === "") {
     $("#error").text("Please provide a name!").show().fadeOut(5000);
@@ -41,6 +45,9 @@ $("#add_peer").submit(function(e) {
   })
   .done(function() {
     $("#response_message").text("success");
+    $form.children("input").each(function() {
+        $(this).val("");
+    });
     location.reload();
   })
   .fail(function(d, status, err) {
@@ -63,5 +70,26 @@ $(".delete_peer").click(function() {
     console.log("error:", d.responseText, "status:", status, "error:", err);
   });
 });
+
+$(".show_qr").click(function() {
+  const id = $(this).parent().attr("data-id");
+  $.ajax({
+    method: "GET",
+    url: "/api/peers/"+id,
+    data: { "qr": true }
+  })
+  .done(function(data) {
+    $(".grid-image").html("<img src='data:image/png;base64," + data + "' />")
+    console.log("Showing QR code for:", id);
+  })
+  .fail(function(d, status, err) {
+    $("#error").text("error:"+ d.responseText);
+    console.log("error:", d.responseText, "status:", status, "error:", err);
+  });
+});
+
+$(".grid-image").click(function() {
+  $(this).html("");
+})
 </script>
 {{ end }}

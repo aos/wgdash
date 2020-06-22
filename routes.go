@@ -16,7 +16,7 @@ func (s *WgServer) Routes() {
 		s.renderTemplatePage("index.html.tmpl", nil).ServeHTTP(w, r)
 	}))
 
-	s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	s.mux.Handle("/static/", gzipHandler(http.StripPrefix("/static/", http.FileServer(http.Dir("static")))))
 	s.mux.Handle("/peers/", s.renderTemplatePage("peers.html.tmpl", s))
 	s.mux.Handle("/api/", s.handleAPI())
 }
