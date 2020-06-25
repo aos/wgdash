@@ -123,7 +123,6 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 					PublicIP        string
 					Port            string
 					AllowedIPs      string
-					QRCode          bool
 				}{
 					VirtualIP:       p.VirtualIP,
 					PrivateKey:      p.PrivateKey,
@@ -131,7 +130,6 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 					PublicIP:        s.PublicIP,
 					Port:            s.Port,
 					AllowedIPs:      ipNet.String(),
-					QRCode:          qrCode,
 				})
 
 				if qrCode {
@@ -181,7 +179,11 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 		p.VirtualIP = peerIP
 		p.PrivateKey = keys["privateKey"]
 		p.PublicKey = keys["publicKey"]
-		p.ID = len(s.Peers) + 1
+		if len(s.Peers) <= 0 {
+			p.ID = len(s.Peers) + 1
+		} else {
+			p.ID = s.Peers[len(s.Peers)-1].ID + 1 // always increment IDs
+		}
 
 		// We want to make sure that wg is actually running here
 		if s.Active {

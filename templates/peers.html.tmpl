@@ -4,50 +4,55 @@
 <h1>Peers</h1>
 
 <div class="grid-container" id="peers">
-  {{ range .Peers }}
-    <div class="grid-item" data-id="{{ .ID }}"><b>Peer</b>: {{ .ID }} <b>|</b> {{ .Name }}
-      <b>|</b> {{ .VirtualIP }} <b>|</b> {{ .Active }}
-      <a href="/api/peers/{{ .ID }}" download="wg0.conf"><input type="button" value="Download"></input></a>
-      <input type="submit" class="show_qr" value="QR Code"></input>
-      <input type="submit" class="delete_peer" value="X"></input>
-    </div>
-  {{ end }}
+  <table class="grid-item">
+    {{ range .Peers }}
+    <tr data-id="{{ .ID }}">
+      <td>{{ .ID }}</td>
+      <td>{{ .Name }}</td>
+      <td>{{ .VirtualIP }}</td>
+      <td>
+        <a href="/api/peers/{{ .ID }}" download="wg0.conf">
+          <input type="button" value="↓"></input>
+        </a>
+      </td>
+      <td><input type="submit" class="show_qr" value="QR"></input></td>
+      <td><input type="submit" class="delete_peer" value="X"></input></td>
+    </tr>
+    {{ end }}
+    <tr><td style="border-bottom: solid 2px white;" height="15px" colspan="6"></td></tr>
+    <tr>
+      <td colspan="2"><input form="add_peer" size="13" type="text" name="name" placeholder="Name"></td>
+      <td colspan="2"><input form="add_peer" size="13" type="text" name="vip" placeholder="Virtual IP"></td>
+      <td><input form="add_peer" type="submit" value="Add"></td>
+    </tr>
+    <tr><td colspan="6" id="response_message" style="color: green;"></td></tr>
+    <tr><td colspan="6" id="error" style="color: red;"></td></tr>
+  </table>
   <div class="grid-image" onclick="clearCode()"></div>
 </div>
 
-<hr />
-<div>
-  <form id="add_peer">
-    <input type="text" name="name" placeholder="Name">
-    <input type="text" name="vip" placeholder="Virtual IP">
-    <input type="submit" value="Add">
-    <div id="response_message" style="color: green;"><div>
-    <div id="error" style="color: red;"></div>
-  </form>
-</div>
+<form id="add_peer"></form>
 
 <script>
 $("#add_peer").submit(function(e) {
   e.preventDefault();
   const $form = $(this);
-  const name = $form.find("input[name='name']");
-  const vip = $form.find("input[name='vip']");
+  const name = $form[0][0].value;
+  const vip = $form[0][1].value;
 
-  if (name.val() === "") {
+  if (name === "") {
     $("#error").text("Please provide a name!").show().fadeOut(5000);
-    return
+    return;
   }
 
   $.ajax({
     method: "POST",
     url: "/api/peers",
-    data: JSON.stringify({ name: name.val(), virtualip: vip.val() })
+    data: JSON.stringify({ name: name, virtualip: vip })
   })
   .done(function() {
     $("#response_message").text("success");
-    $form.children("input").each(function() {
-        $(this).val("");
-    });
+    [0, 1].forEach((i) => ($form[0][i].value = ""));
     location.reload();
   })
   .fail(function(d, status, err) {
@@ -59,7 +64,7 @@ $("#add_peer").submit(function(e) {
 $(".delete_peer").click(function() {
   $.ajax({
     method: "DELETE",
-    url: "/api/peers/"+$(this).parent().attr("data-id"),
+    url: "/api/peers/"+$(this).parent().parent().attr("data-id"),
   })
   .done(function() {
     $("#response_message").text("success");
@@ -72,7 +77,7 @@ $(".delete_peer").click(function() {
 });
 
 $(".show_qr").click(function() {
-  const id = $(this).parent().attr("data-id");
+  const id = $(this).parent().parent().attr("data-id");
   $.ajax({
     method: "GET",
     url: "/api/peers/"+id,
