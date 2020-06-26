@@ -68,9 +68,6 @@ func TestPeerConfigTemplate(t *testing.T) {
 		{false, `[Interface]
 Address = 10.11.32.87/32
 PrivateKey = shh==secret
-PostUp = iptables -A FORWARD -i %i -o %i -j ACCEPT
-PostDown = iptables -D FORWARD -i %i -o %i -j ACCEPT
-SaveConfig = false
 
 [Peer]
 PublicKey = helloworld==

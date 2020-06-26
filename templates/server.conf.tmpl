@@ -11,4 +11,7 @@ SaveConfig = false
 [Peer]
 PublicKey = {{ .PublicKey }}
 AllowedIPs = {{ .VirtualIP }}/32
+{{- if (gt .KeepAlive 0) }}
+PersistentKeepalive = {{ .KeepAlive }}
+{{- end }}
 {{- end }}

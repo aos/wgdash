@@ -25,6 +25,7 @@ type Peer struct {
 	PrivateKey string
 	PublicKey  string
 	VirtualIP  string
+	KeepAlive  uint16 `json:",string"`
 }
 
 // WgServer holds all configuration of our server, including the router
@@ -123,6 +124,7 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 					PublicIP        string
 					Port            string
 					AllowedIPs      string
+					KeepAlive       uint16
 				}{
 					VirtualIP:       p.VirtualIP,
 					PrivateKey:      p.PrivateKey,
@@ -130,6 +132,7 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 					PublicIP:        s.PublicIP,
 					Port:            s.Port,
 					AllowedIPs:      ipNet.String(),
+					KeepAlive:       p.KeepAlive,
 				})
 
 				if qrCode {
