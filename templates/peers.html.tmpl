@@ -40,7 +40,7 @@ $("#add_peer").submit(function(e) {
   const $form = $(this);
   const name = $form[0][0].value;
   const vip = $form[0][1].value;
-  const keep_alive = $form[0][2].value;
+  const keep_alive = $form[0][2].value || 0;
 
   if (name === "") {
     $("#error").text("Please provide a name!").show().fadeOut(5000);

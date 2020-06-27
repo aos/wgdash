@@ -25,7 +25,7 @@ type Peer struct {
 	PrivateKey string
 	PublicKey  string
 	VirtualIP  string
-	KeepAlive  uint16 `json:",string"`
+	KeepAlive  int
 }
 
 // WgServer holds all configuration of our server, including the router
@@ -124,7 +124,7 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 					PublicIP        string
 					Port            string
 					AllowedIPs      string
-					KeepAlive       uint16
+					KeepAlive       int
 				}{
 					VirtualIP:       p.VirtualIP,
 					PrivateKey:      p.PrivateKey,
@@ -190,7 +190,7 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 
 		// We want to make sure that wg is actually running here
 		if s.Active {
-			err = wgcli.AddPeer(p.PublicKey, p.VirtualIP)
+			err = wgcli.AddPeer(p.PublicKey, p.VirtualIP, p.KeepAlive)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				log.Printf("error: (add_peer - wg add peer): %s\n", err.Error())

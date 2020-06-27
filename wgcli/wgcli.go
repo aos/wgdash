@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -29,8 +30,12 @@ func GenerateKeyPair() (map[string]string, error) {
 }
 
 // AddPeer adds a new peer to an active server
-func AddPeer(pubkey, ip string) error {
-	cmd := exec.Command("wg", "set", "wg0", "peer", pubkey, "allowed-ips", ip+"/32")
+func AddPeer(pubkey, ip string, keepAlive int) error {
+	cmd := exec.Command("wg", "set", "wg0",
+		"peer", pubkey,
+		"persistent-keepalive", strconv.Itoa(keepAlive),
+		"allowed-ips", ip+"/32",
+	)
 	res, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf(fmt.Sprint(err) + ": " + string(res))

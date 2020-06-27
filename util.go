@@ -34,7 +34,7 @@ func LoadServerConfig() *WgServer {
 	var wgServer WgServer
 	err = json.Unmarshal(f, &wgServer)
 	if err != nil {
-		log.Fatalf("Incorrectly formated JSON server config: %s", err)
+		log.Fatalf("Incorrectly formatted JSON server config: %s", err)
 	}
 
 	// TODO: this could potentially break if we find a template that does
