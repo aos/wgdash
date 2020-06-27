@@ -1,12 +1,127 @@
-{{ define "title" }}<title>Server Settings</title>{{ end }}
+{{ define "title" }}<title>Wireguard Dashboard</title>{{ end }}
 
 {{ define "content" }}
-<h1>Server Settings</h1>
-<p>Configure your server settings</p>
+<h1>Server Information</h1>
 
-<div>
-  <a href="/peers">Peers</a>
+<table style="width: 100%;">
+  <tr>
+    <td><b>Public IP</b></td><td>{{ .PublicIP }}</td>
+  </tr>
+  <tr>
+    <td><b>Port</b></td><td>{{ .Port }}</td>
+  </tr>
+  <tr>
+    <td><b>Virtual IP</b></td><td>{{ .VirtualIP }}/{{ .CIDR }}</td>
+  </tr>
+  <tr>
+    <td><b>Public Key</b></td><td>{{ .PublicKey }}</td>
+  </tr>
+</table>
+
+<hr />
+
+<h1>Peers</h1>
+
+<div class="grid-container" id="peers">
+  <table class="grid-item">
+    {{ range .Peers }}
+    <tr data-id="{{ .ID }}">
+      <td>{{ if (gt .KeepAlive 0) }}[{{ .ID }}]{{ else }}{{ .ID }}{{ end }}</td>
+      <td>{{ .Name }}</td>
+      <td>{{ .VirtualIP }}</td>
+      <td style="text-align:center;">
+        <a href="/api/peers/{{ .ID }}" download="wg0.conf">
+          <input type="button" value="↓"></input>
+        </a>
+      </td>
+      <td style="text-align:center;"><input type="submit" class="show_qr" value="QR"></input></td>
+      <td style="text-align:center;"><input type="submit" class="delete_peer" value="X"></input></td>
+    </tr>
+    {{ end }}
+    <tr><td style="border-bottom: solid 2px white;" height="15px" colspan="6"></td></tr>
+    <tr>
+      <td colspan="2"><input form="add_peer" size="8" type="text" name="name" placeholder="Name"></td>
+      <td colspan="2"><input form="add_peer" size="12" type="text" name="vip" placeholder="Virtual IP"></td>
+      <td>
+        <input form="add_peer" type="checkbox" name="keep_alive">
+        <label for="keep_alive">Keep Alive</label>
+      </td>
+      <td colspan="1"><input form="add_peer" type="submit" class="add_button" value="Add"></td>
+    </tr>
+    <tr><td colspan="6" id="response_message" style="color: green;"></td></tr>
+    <tr><td colspan="6" id="error" style="color: red;"></td></tr>
+  </table>
+  <div class="grid-image" onclick="clearCode()"></div>
 </div>
 
-<button>Save and restart</button>
+<form id="add_peer"></form>
+
+<script>
+$("#add_peer").submit(function(e) {
+  e.preventDefault();
+  const $form = $(this);
+  const name = $form[0][0].value;
+  const vip = $form[0][1].value;
+  // We default Persistent-Keepalive to 25 seconds
+  const keep_alive = $form[0][2].checked ? 25 : 0;
+
+  if (name === "") {
+    $("#error").text("Please provide a name!").show().fadeOut(5000);
+    return;
+  }
+
+  $.ajax({
+    method: "POST",
+    url: "/api/peers",
+    data: JSON.stringify({ name: name, virtualip: vip, keepalive: keep_alive })
+  })
+  .done(function() {
+    $("#response_message").text("success");
+    [0, 1].forEach((i) => ($form[0][i].value = ""));
+    keep_alive.checked = false;
+
+    location.reload();
+  })
+  .fail(function(d, status, err) {
+    $("#error").text("error:"+ d.responseText);
+    console.log("error:", d.responseText, "status:", status, "error:", err);
+  });
+});
+
+$(".delete_peer").click(function() {
+  $.ajax({
+    method: "DELETE",
+    url: "/api/peers/"+$(this).parent().parent().attr("data-id"),
+  })
+  .done(function() {
+    $("#response_message").text("success");
+    location.reload();
+  })
+  .fail(function(d, status, err) {
+    $("#error").text("error:"+ d.responseText);
+    console.log("error:", d.responseText, "status:", status, "error:", err);
+  });
+});
+
+$(".show_qr").click(function() {
+  const id = $(this).parent().parent().attr("data-id");
+  $.ajax({
+    method: "GET",
+    url: "/api/peers/"+id,
+    data: { "qr": true }
+  })
+  .done(function(data) {
+    $(".grid-image").html("<img src='data:image/png;base64," + data + "' />")
+    console.log("Showing QR code for:", id);
+  })
+  .fail(function(d, status, err) {
+    $("#error").text("error:"+ d.responseText);
+    console.log("error:", d.responseText, "status:", status, "error:", err);
+  });
+});
+
+$(".grid-image").click(function() {
+  $(this).html("");
+})
+</script>
 {{ end }}

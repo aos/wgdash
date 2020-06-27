@@ -124,7 +124,6 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 					PublicIP        string
 					Port            string
 					AllowedIPs      string
-					KeepAlive       int
 				}{
 					VirtualIP:       p.VirtualIP,
 					PrivateKey:      p.PrivateKey,
@@ -132,7 +131,6 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 					PublicIP:        s.PublicIP,
 					Port:            s.Port,
 					AllowedIPs:      ipNet.String(),
-					KeepAlive:       p.KeepAlive,
 				})
 
 				if qrCode {

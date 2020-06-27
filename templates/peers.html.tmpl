@@ -23,7 +23,10 @@
     <tr>
       <td colspan="2"><input form="add_peer" size="8" type="text" name="name" placeholder="Name"></td>
       <td colspan="2"><input form="add_peer" size="12" type="text" name="vip" placeholder="Virtual IP"></td>
-      <td colspan="1"><input form="add_peer" size="5" type="number" name="keep_alive" min="0" max="65535" placeholder="Keep Alive"></td>
+      <td>
+        <input form="add_peer" type="checkbox" name="keep_alive">
+        <label for="keep_alive">Keep Alive</label>
+      </td>
       <td colspan="1"><input form="add_peer" type="submit" value="Add"></td>
     </tr>
     <tr><td colspan="6" id="response_message" style="color: green;"></td></tr>
@@ -40,7 +43,8 @@ $("#add_peer").submit(function(e) {
   const $form = $(this);
   const name = $form[0][0].value;
   const vip = $form[0][1].value;
-  const keep_alive = $form[0][2].value || 0;
+  // We default Persistent-Keepalive to 25 seconds
+  const keep_alive = $form[0][2].checked ? 25 : 0;
 
   if (name === "") {
     $("#error").text("Please provide a name!").show().fadeOut(5000);

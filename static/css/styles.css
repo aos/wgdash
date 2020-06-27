@@ -7,6 +7,12 @@ a {
   color: rgb(43, 193, 213);
 }
 
+.delete_peer {
+  background-color: #e4685d;
+  border-radius: 4px;
+  display: inline-block;
+}
+
 .grid-container {
   display: grid;
   grid-template-columns: repeat(6, 1fr);

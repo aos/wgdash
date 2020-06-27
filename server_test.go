@@ -20,7 +20,7 @@ func TestHandleIndex(t *testing.T) {
 		s.ServeHTTP(response, request)
 
 		got := response.Body.String()
-		want := "Server Settings"
+		want := "Server Information"
 
 		if !strings.Contains(got, want) {
 			t.Errorf("got %q, want %q", got, want)
