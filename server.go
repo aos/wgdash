@@ -261,7 +261,6 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Peer %d not found", id), http.StatusNotFound)
 
 	case "PUT":
-		http.Error(w, fmt.Sprint("Not implemented yet"), http.StatusNotImplemented)
+		http.Error(w, "Not implemented yet", http.StatusNotImplemented)
 	}
-	return
 }
