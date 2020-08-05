@@ -2,10 +2,6 @@ package main
 
 import "net/http"
 
-// Handler implements ServeHTTP(ResponseWriter, *Request)
-// mux.Handle requires a Handler
-// mux.HandleFunc requires pattern and handler func(ResponseWriter, *Request)
-
 // Routes sets up all the routes for the server
 func (s *WgServer) Routes() {
 	s.mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

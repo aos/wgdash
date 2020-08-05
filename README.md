@@ -31,7 +31,9 @@ personally but use at your own care.
       - to create/update `server_config.json`, this stores all public/private keys
         for clients and should only be root permissions.
       - to activate wireguard via `systemctl start wg-quick@wg0`
-4. This opens the dashboard at `localhost:3100`. You can add/remove peers here.
+4. The dashboard can now be opened at `localhost:3100` in the browser. You can
+   add/remove peers here. If a Virtual IP is not assigned, it will
+   auto-increment based on the server Virtual IP and CIDR.
 5. Download or use the QR button to grab the generated configuration files.
    Place them on your peers.
 6. Test the connection from the peer first!
@@ -42,6 +44,7 @@ saved.
 
 ## TODO
 
+- [ ] Edit peer configuration
 - [ ] Add ability to insert custom DNS
 - [ ] Add button to stop service
 - [ ] Add better peer information
