@@ -43,8 +43,8 @@ func AddPeer(pubkey, ip string, keepAlive int) error {
 	return nil
 }
 
-// DeletePeer deletes a given peer from an active server
-func DeletePeer(pubkey string) error {
+// RemovePeer removes a given peer from an active server
+func RemovePeer(pubkey string) error {
 	cmd := exec.Command("wg", "set", "wg0", "peer", pubkey, "remove")
 	res, err := cmd.CombinedOutput()
 	if err != nil {

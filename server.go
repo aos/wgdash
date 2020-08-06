@@ -240,7 +240,7 @@ func (s *WgServer) handlePeersAPI(w http.ResponseWriter, r *http.Request) {
 		for i, p := range s.Peers {
 			if p.ID == id {
 				if s.Active {
-					err = wgcli.DeletePeer(p.PublicKey)
+					err = wgcli.RemovePeer(p.PublicKey)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return
