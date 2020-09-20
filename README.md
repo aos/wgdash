@@ -17,7 +17,8 @@ personally but use at your own care.
 ## Requirements
 
 - `go 1.14` or higher
-- Linux distribution with [WireGuard](https://www.wireguard.com/install/)
+- Linux distribution with [WireGuard](https://www.wireguard.com/install/) and
+  `systemd`
 
 ## Installation & Usage
 
@@ -39,7 +40,7 @@ personally but use at your own care.
 6. Test the connection from the peer first!
 
 The dashboard does not need to be running constantly for wireguard to be
-active. Once you are done making changes, you can ^C out and your changes are
+active. Once you are done making changes, you can `^C` out and your changes are
 saved.
 
 ## TODO
@@ -48,5 +49,6 @@ saved.
 - [ ] Add ability to insert custom DNS
 - [ ] Add button to stop service
 - [ ] Add better peer information
+- [ ] Remove dependency on systemd
 - [ ] Remove dependency on jQuery for frontend
 - [ ] Create Dockerfile
